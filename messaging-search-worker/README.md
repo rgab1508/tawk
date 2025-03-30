@@ -1,98 +1,185 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Messaging Search Worker
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Service responsible for indexing messages in Elasticsearch for efficient full-text search.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+- Kafka message consumption from `message-inserted` topic
+- Elasticsearch message indexing with optimized mapping
+- Batch processing for improved performance
+- Full-text search capabilities
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Environment Variables
 
-## Project setup
+```env
+# MongoDB (for health checks)
+MONGODB_URI=mongodb://localhost:27017/
+MONGODB_DBNAME=tawk
+MONGODB_USER=''
+MONGODB_PASSWORD=''
+MONGODB_AUTH_SOURCE=''
 
-```bash
-$ pnpm install
+# Elasticsearch
+ES_NODE_URI='http://localhost:9200'
+ES_USER=''
+ES_PASSWORD=''
+
+# Kafka
+KAFKA_CLIENT_ID='messaging-search-worker'
+KAFKA_GROUP_ID='messaging-search-worker'
+KAFKA_BROKERS='localhost:9092'
 ```
 
-## Compile and run the project
+## Elasticsearch Mapping
 
-```bash
-# development
-$ pnpm run start
+### Index Configuration
 
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+```typescript
+{
+  index: 'messages',
+  body: {
+    mappings: {
+      properties: {
+        id: { type: 'keyword' },
+        conversationId: { type: 'keyword' },
+        content: { type: 'text' },
+        timestamp: { type: 'date' }
+      }
+    }
+  }
+}
 ```
 
-## Run tests
+### Search Optimization
+
+- Uses `keyword` type for exact matches on IDs
+- `text` type for content with full-text search
+- `date` type for timestamp-based queries
+- Optimized for pagination with `search_after`
+
+## Message Flow
+
+1. **Message Reception**:
+
+   - Consumes messages from `message-inserted` topic
+   - Validates message format and required fields
+   - Groups messages for batch processing
+
+2. **Indexing Process**:
+
+   - Performs bulk indexing in Elasticsearch
+   - Uses optimized mapping for search performance
+   - Ensures data consistency with MongoDB
+
+3. **Search Support**:
+   - Enables full-text search across messages
+   - Supports pagination with cursor-based navigation
+   - Maintains sort order consistency
+
+## Performance Optimizations
+
+1. **Batch Processing**:
+
+   - Processes messages in configurable batch sizes
+   - Uses Elasticsearch bulk API for efficient indexing
+   - Reduces network round trips
+
+2. **Search Optimization**:
+
+   - Optimized field mappings for search performance
+   - Efficient pagination using `search_after`
+   - Consistent sorting with MongoDB
+
+3. **Error Handling**:
+   - Retries on transient failures
+   - Dead letter queue for failed messages
+   - Monitoring and alerting integration
+
+## Development
 
 ```bash
-# unit tests
-$ pnpm run test
+# Install dependencies
+pnpm install
 
-# e2e tests
-$ pnpm run test:e2e
+# Start development server
+pnpm start:dev
 
-# test coverage
-$ pnpm run test:cov
+# Build for production
+pnpm build
+
+# Start production server
+pnpm start:prod
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Testing
 
 ```bash
-$ pnpm install -g mau
-$ mau deploy
+# Run unit tests
+pnpm test
+
+# Run e2e tests
+pnpm test:e2e
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Kafka Topics
 
-## Resources
+### Input Topic: message_index_create
 
-Check out a few resources that may come in handy when working with NestJS:
+- Messages to be indexed in Elasticsearch
+- Partition key: conversationId
+- Batch size: 100
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Elasticsearch Index
 
-## Support
+### Index Name: messages
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+- Dynamic mapping enabled
+- Analyzers configured for text search
+- Optimized for message content
 
-## Stay in touch
+### Mapping Structure
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```json
+{
+  "mappings": {
+    "properties": {
+      "conversationId": { "type": "keyword" },
+      "messageId": { "type": "keyword" },
+      "content": { "type": "text" },
+      "timestamp": { "type": "date" },
+      "senderId": { "type": "keyword" }
+    }
+  }
+}
+```
 
-## License
+## Performance Considerations
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- Bulk indexing for Elasticsearch operations
+- Efficient Kafka message handling
+- Proper error handling and retries
+- Connection pooling for Elasticsearch
+- Kafka consumer group management
+
+## Error Handling
+
+The service implements the following error handling strategies:
+
+1. Elasticsearch Errors:
+
+   - Retries on connection failures
+   - Bulk operation rollback on errors
+   - Error logging for failed operations
+
+2. Kafka Errors:
+   - Consumer group rebalancing
+   - Message retry mechanism
+   - Dead letter queue for failed messages
+
+## Monitoring
+
+- Kafka consumer lag monitoring
+- Elasticsearch indexing metrics
+- Error rate tracking
+- Processing latency monitoring
+- Index health monitoring

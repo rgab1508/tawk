@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ENV } from 'src/constants/env';
 import { MongooseModuleOptions } from '@nestjs/mongoose';
-import { ElasticsearchConfigInterface } from '../../shared/interfaces/app-config.interface';
+import { ElasticsearchConfigInterface } from '../../interfaces/app-config.interface';
 import { KafkaConfig } from 'kafkajs';
 
 @Injectable()

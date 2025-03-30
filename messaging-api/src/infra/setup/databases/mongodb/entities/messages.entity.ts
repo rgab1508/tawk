@@ -19,12 +19,10 @@ const MessageSchema: Schema = new Schema(
     conversationId: {
       type: String,
       required: true,
-      index: true,
     },
     senderId: {
       type: String,
       required: true,
-      index: true,
     },
     content: {
       type: String,
@@ -37,12 +35,28 @@ const MessageSchema: Schema = new Schema(
     timestamp: {
       type: Date,
       required: true,
-      index: true,
     },
   },
   {
     collection: 'Messages',
   },
+);
+
+// Compound indexes for optimized pagination and sorting
+MessageSchema.index(
+  { conversationId: 1, timestamp: -1, id: 1 },
+  { name: 'idx_conv_timestamp_desc_id' },
+);
+
+MessageSchema.index(
+  { conversationId: 1, timestamp: 1, id: 1 },
+  { name: 'idx_conv_timestamp_asc_id' },
+);
+
+// Index for user-based queries
+MessageSchema.index(
+  { senderId: 1, timestamp: -1 },
+  { name: 'idx_sender_timestamp' },
 );
 
 export const MessagesModel = mongoose.model<Messages>(

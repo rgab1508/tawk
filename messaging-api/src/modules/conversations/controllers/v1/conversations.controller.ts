@@ -5,11 +5,13 @@ import {
   GetConversationMessagesWithSearchQueryDto,
 } from '../../dtos/v1/get-conversation-messages.dto';
 import { GetConversationMessagesUseCase } from '../../use-cases/v1/get-conversation-messages.use-case';
+import { GetConversationMessagesWithSearchUseCase } from '../../use-cases/v1/get-conversation-messages-with-search.use-case';
 
 @Controller('api/conversations')
 export class ConversationsController {
   constructor(
     private readonly getConversationMessagesUseCase: GetConversationMessagesUseCase,
+    private readonly getConversationMessagesWithSearchUseCase: GetConversationMessagesWithSearchUseCase,
   ) {}
 
   @Get(':conversationId/messages')
@@ -35,8 +37,19 @@ export class ConversationsController {
   getConversationMessagesWithSearch(
     @Param() { conversationId }: GetConversationMessagesParamsDto,
     @Query()
-    { q, lastMessageId, sortBy }: GetConversationMessagesWithSearchQueryDto,
+    {
+      q: searchTerm,
+      lastMessageId,
+      lastPaginationId,
+      sortBy,
+    }: GetConversationMessagesWithSearchQueryDto,
   ) {
-    console.log(lastMessageId, sortBy, conversationId, q);
+    return this.getConversationMessagesWithSearchUseCase.execute({
+      conversationId,
+      lastMessageId,
+      lastPaginationId,
+      sortBy,
+      searchTerm,
+    });
   }
 }

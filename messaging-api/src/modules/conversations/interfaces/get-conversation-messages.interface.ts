@@ -8,6 +8,11 @@ export type GetConversationMessagesRequestV1 = {
   sortBy?: GetConversationMessagesSortBy;
 };
 
+export type GetConversationMessagesWithSearchRequestV1 =
+  GetConversationMessagesRequestV1 & {
+    searchTerm?: string;
+  };
+
 export type GetConversationMessagesResponseV1 = {
   messages: Partial<Messages>[];
   hasMore: boolean;

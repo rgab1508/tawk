@@ -3,20 +3,28 @@ import {
   CreateMessageRequestV1,
   CreateMessageResponseV1,
 } from '../interfaces/create-message.interface';
-import { MessagesRepository } from '../../../infra/setup/databases/mongodb/repositories/messages.repository';
-import { Messages } from '../../../infra/setup/databases/mongodb/entities/messages.entity';
+import { KafkaService } from '../../../shared/queues/kafka/kafka.service';
+import { KafkaTopics } from '../../../shared/queues/kafka/constants/topics';
 
 @Injectable()
 export class MessagesService {
-  constructor(private readonly messagesRepository: MessagesRepository) {}
+  constructor(private readonly kafkaService: KafkaService) {}
 
   async createMessage(
     request: CreateMessageRequestV1,
   ): Promise<CreateMessageResponseV1> {
-    await this.messagesRepository.create({
-      ...request,
-      timestamp: new Date(),
-    } as Messages);
+    await this.kafkaService.sendMessages({
+      topic: KafkaTopics.CREATE_MESSAGE,
+      messages: [
+        {
+          key: request.conversationId,
+          value: JSON.stringify({
+            ...request,
+            timestamp: new Date().toISOString(),
+          }),
+        },
+      ],
+    });
 
     return {
       success: true,

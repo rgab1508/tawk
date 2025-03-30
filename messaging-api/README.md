@@ -1,98 +1,182 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Messaging API Service
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+REST API service for message retrieval and search functionality.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+- Message retrieval with optimized pagination using compound indexes
+- Full-text search across messages with Elasticsearch
+- Efficient sorting by timestamp with consistent ordering
+- MongoDB and Elasticsearch integration with performance optimizations
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Environment Variables
 
-## Project setup
+```env
+# Server
+PORT=3000
+NODE_ENV=development
 
-```bash
-$ pnpm install
+# MongoDB
+MONGODB_URI=mongodb://localhost:27017/
+MONGODB_DBNAME=''
+MONGODB_USER=''
+MONGODB_PASSWORD=''
+MONGODB_AUTH_SOURCE=''
+
+# Elasticsearch
+ES_NODE_URI='http://localhost:9200'
+ES_USER=''
+ES_PASSWORD=''
+
+# Kafka
+KAFKA_CLIENT_ID='messaging-api'
+KAFKA_BROKERS='localhost:9092'
 ```
 
-## Compile and run the project
+## Database Schema
 
-```bash
-# development
-$ pnpm run start
+### MongoDB Schema
 
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+```typescript
+interface Messages {
+  id: string; // Unique message identifier
+  conversationId: string; // Groups messages by conversation
+  senderId: string; // Identifies message sender
+  content: string; // Message content
+  metadata?: Record<string, any>; // Optional metadata
+  timestamp: Date; // Message creation timestamp
+}
 ```
 
-## Run tests
+### Indexes
 
-```bash
-# unit tests
-$ pnpm run test
+```typescript
+// Primary compound index for DESC order
+{ conversationId: 1, timestamp: -1, id: 1 }
 
-# e2e tests
-$ pnpm run test:e2e
+// Secondary compound index for ASC order
+{ conversationId: 1, timestamp: 1, id: 1 }
 
-# test coverage
-$ pnpm run test:cov
+// User-based query index
+{ senderId: 1, timestamp: -1 }
 ```
 
-## Deployment
+## API Endpoints
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Get Conversation Messages
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g mau
-$ mau deploy
+```http
+GET /api/conversations/:conversationId/messages
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Retrieves messages for a specific conversation with optimized pagination and sorting.
 
-## Resources
+#### Parameters
 
-Check out a few resources that may come in handy when working with NestJS:
+- `conversationId` (path): UUID of the conversation
+- `lastMessageId` (query, optional): ID of the last message for pagination
+- `lastPaginationId` (query, optional): Timestamp of the last message for pagination
+- `sortBy` (query, optional): Sort order
+  - `DATE_CREATED_ASC`: Sort by timestamp ascending
+  - `DATE_CREATED_DESC`: Sort by timestamp descending (default)
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+#### Response
 
-## Support
+```json
+{
+  "messages": [
+    {
+      "id": "string",
+      "conversationId": "string",
+      "content": "string",
+      "timestamp": "string",
+      "senderId": "string"
+    }
+  ],
+  "hasMore": boolean,
+  "nextLastMessageId": "string",
+  "nextPaginationId": "string"
+}
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### Search Conversation Messages
 
-## Stay in touch
+```http
+GET /api/conversations/:conversationId/messages/search
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Searches messages within a conversation using Elasticsearch.
 
-## License
+#### Parameters
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- `conversationId` (path): UUID of the conversation
+- `q` (query): Search query string
+- `lastMessageId` (query, optional): ID of the last message for pagination
+- `lastPaginationId` (query, optional): Timestamp of the last message for pagination
+- `sortBy` (query, optional): Sort order (same as above)
+
+## Performance Optimizations
+
+1. **Pagination Strategy**:
+
+   - Uses compound indexes for efficient querying
+   - Cursor-based pagination with timestamp and ID
+   - Consistent ordering with ID as tie-breaker
+   - Page size of 20 messages for optimal performance
+
+2. **Query Optimization**:
+
+   - Compound indexes cover all query patterns
+   - No index intersection needed
+   - Efficient range-based queries
+   - Optimized sort operations
+
+3. **Search Optimization**:
+   - Elasticsearch for full-text search
+   - Consistent pagination with MongoDB
+   - Optimized index mapping
+   - Efficient bulk operations
+
+## Development
+
+```bash
+# Install dependencies
+pnpm install
+
+# Start development server
+pnpm start:dev
+
+# Build for production
+pnpm build
+
+# Start production server
+pnpm start:prod
+```
+
+## Testing
+
+```bash
+# Run unit tests
+pnpm test
+
+# Run e2e tests
+pnpm test:e2e
+```
+
+## Error Handling
+
+The API uses standard HTTP status codes:
+
+- `200`: Success
+- `400`: Bad Request
+- `401`: Unauthorized
+- `403`: Forbidden
+- `404`: Not Found
+- `500`: Internal Server Error
+
+## Performance Considerations
+
+- Uses cursor-based pagination for efficient data retrieval
+- Implements efficient sorting using MongoDB and Elasticsearch
+- Uses Map for O(1) message lookup when maintaining order
+- Implements proper indexing for search and retrieval

@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
+import { MongoDBService } from './infra/setup/databases/mongodb/mongodb.service';
 
 @Injectable()
 export class AppService {
-  getHello(): string {
-    return 'Hello World!';
+  constructor(private readonly mongoDBService: MongoDBService) {}
+  async onAppInit() {
+    this.mongoDBService.handleMongoConnection().catch(console.error);
   }
 }
