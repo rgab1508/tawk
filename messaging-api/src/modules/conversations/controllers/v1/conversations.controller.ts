@@ -24,7 +24,6 @@ export class ConversationsController {
       sortBy,
     }: GetConversationMessagesQueryDto,
   ) {
-    console.log(lastMessageId, lastPaginationId, sortBy, conversationId);
     return this.getConversationMessagesUseCase.execute({
       conversationId,
       lastMessageId,

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ENV } from 'src/constants/env';
 import { MongooseModuleOptions } from '@nestjs/mongoose';
 import { ElasticsearchConfigInterface } from '../../interfaces/app-config.interface';
 import { KafkaConfig } from 'kafkajs';
+import { ENV } from '../../../constants/env';
 
 @Injectable()
 export class AppConfigService {
