@@ -145,29 +145,112 @@ cd messaging-search-worker
 pnpm start:dev
 ```
 
-## API Endpoints
+## API Documentation
 
-### Messaging API
+### Endpoints
 
-#### 1. Get Conversation Messages
+### Messages
 
+#### Create Message
+
+Creates a new message in a conversation.
+
+```bash
+curl --location 'http://localhost:4000/api/messages' \
+--header 'Content-Type: application/json' \
+--data '{
+    "id": "0088b8e7-936a-4752-833a-a319ab53bd78",
+    "conversationId": "a12533b3-8a32-46cc-a638-da129eb92ff4",
+    "senderId": "f1a50c56-5242-4581-806a-05c9ffb3039f",
+    "content": "Sit vero sint.\nDolor quos unde cumque id modi ipsa.\nAutem harum rem omnis non dolorum eaque est ut."
+}'
 ```
-GET /api/conversations/:conversationId/messages
-Query Parameters:
-- lastMessageId: string (optional)
-- lastPaginationId: string (optional)
-- sortBy: 'DATE_CREATED_ASC' | 'DATE_CREATED_DESC' (optional)
+
+**Request Body:**
+
+- `id` (string, UUID): Unique identifier for the message
+- `conversationId` (string, UUID): ID of the conversation this message belongs to
+- `senderId` (string, UUID): ID of the user sending the message
+- `content` (string): The message content
+
+### Conversations
+
+#### Get Conversation Messages
+
+Retrieves messages for a specific conversation with pagination support.
+
+```bash
+curl --location 'http://localhost:4000/api/conversations/acbfaceb-69ee-49f6-8c17-d22d431d1aa9/messages?lastMessageId=10812e3e-38e9-4bfc-85f2-fc541788e7b6&lastPaginationId=2025-03-29T13%3A51%3A25.253Z'
 ```
 
-#### 2. Search Messages
+**Query Parameters:**
 
+- `conversationId` (path parameter, UUID): ID of the conversation
+- `lastMessageId` (optional, string): ID of the last message for pagination
+- `lastPaginationId` (optional, string): Timestamp of the last message for pagination
+- `sortBy` (optional, enum): Sort order for messages
+  - `DATE_CREATED_ASC`: Sort by creation date ascending
+  - `DATE_CREATED_DESC`: Sort by creation date descending (default)
+
+#### Search Conversation Messages
+
+Searches messages within a conversation with pagination support.
+
+```bash
+curl --location 'http://localhost:4000/api/conversations/acbfaceb-69ee-49f6-8c17-d22d431d1aa9/messages/search?q=gab&sortBy=DATE_CREATED_DESC&sortBy=DATE_CREATED_ASC&lastMessageId=36fee290-750a-4500-bd07-d5b70969b322&lastPaginationId=2025-03-30T10%3A09%3A15.756Z'
 ```
-GET /api/conversations/:conversationId/messages/search
-Query Parameters:
-- searchTerm: string
-- lastMessageId: string (optional)
-- lastPaginationId: string (optional)
-- sortBy: 'DATE_CREATED_ASC' | 'DATE_CREATED_DESC' (optional)
+
+**Query Parameters:**
+
+- `conversationId` (path parameter, UUID): ID of the conversation
+- `q` (required, string): Search term
+- `lastMessageId` (optional, string): ID of the last message for pagination
+- `lastPaginationId` (optional, string): Timestamp of the last message for pagination
+- `sortBy` (optional, enum): Sort order for messages
+  - `DATE_CREATED_ASC`: Sort by creation date ascending
+  - `DATE_CREATED_DESC`: Sort by creation date descending (default)
+
+### Response Format
+
+All endpoints return responses in the following format:
+
+```json
+{
+  "messages": [
+    {
+      "id": "string",
+      "conversationId": "string",
+      "senderId": "string",
+      "content": "string",
+      "timestamp": "string",
+      "metadata": {
+        "type": "string",
+        "timestamp": "string"
+      }
+    }
+  ],
+  "hasMore": boolean,
+  "nextLastMessageId": "string",
+  "nextPaginationId": "string"
+}
+```
+
+### Error Responses
+
+The API returns appropriate HTTP status codes and error messages:
+
+- `400 Bad Request`: Invalid input parameters or validation errors
+- `404 Not Found`: Resource not found
+- `500 Internal Server Error`: Server-side errors
+
+Error response format:
+
+```json
+{
+  "statusCode": number,
+  "message": "string",
+  "error": "string"
+}
 ```
 
 ## Scaling Considerations
